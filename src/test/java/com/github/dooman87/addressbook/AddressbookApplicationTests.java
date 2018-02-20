@@ -20,9 +20,7 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -74,10 +72,57 @@ public class AddressbookApplicationTests {
         ).andExpect(status().isBadRequest());
     }
 
+    @Test
+    public void userCanAddContactsToAddressBook() throws Exception {
+        MockHttpServletResponse addressBookResponse = mockMvc.perform(
+                post("/addressBooks")
+                        .content(addressBookJson("When need help"))
+        )
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", containsString("/addressBooks")))
+                .andReturn().getResponse();
+
+        MockHttpServletResponse contactResponse = mockMvc.perform(
+                post("/contacts")
+                        .content(contactJson("Batman", "0123-HELP"))
+        )
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", containsString("/contacts")))
+                .andReturn().getResponse();
+
+        String addressBookLink = addressBookResponse.getHeader("Location");
+        String contactLink = contactResponse.getHeader("Location");
+
+        //Adding contact to address book
+        mockMvc.perform(
+                put(contactLink + "/addressBook")
+                    .header("Content-Type", "text/uri-list")
+                    .content(addressBookLink)
+        ).andExpect(status().isNoContent());
+
+        //Testing that address book has added contact
+        mockMvc.perform(
+                get(addressBookLink + "/contacts")
+        )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("@._embedded.contacts[0].name").value(equalTo("Batman")));
+
+        //Deleting contact and address book
+        mockMvc.perform(delete(contactLink)).andExpect(status().isNoContent());
+        mockMvc.perform(delete(addressBookLink)).andExpect(status().isNoContent());
+    }
+
     private String contactJson(String name, String phone) throws JsonProcessingException {
         Map<String, String> map = new HashMap<>();
         map.put("name", name);
         map.put("phone", phone);
+
+        return mapper.writeValueAsString(map);
+    }
+
+    private String addressBookJson(String name) throws JsonProcessingException {
+        Map<String, String> map = new HashMap<>();
+        map.put("name", name);
 
         return mapper.writeValueAsString(map);
     }

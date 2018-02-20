@@ -1,9 +1,8 @@
 package com.github.dooman87.addressbook.contact;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import com.github.dooman87.addressbook.addressbook.AddressBook;
+
+import javax.persistence.*;
 import javax.validation.constraints.NotEmpty;
 
 @Entity
@@ -14,6 +13,9 @@ public class Contact {
 
     private String name;
     private String phone;
+    @ManyToOne
+    @JoinColumn(name = "addressbook_id")
+    private AddressBook addressBook;
 
     public String getName() {
         return name;
@@ -29,5 +31,13 @@ public class Contact {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public AddressBook getAddressBook() {
+        return addressBook;
+    }
+
+    public void setAddressBook(AddressBook addressBook) {
+        this.addressBook = addressBook;
     }
 }
